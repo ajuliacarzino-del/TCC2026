@@ -1,0 +1,16 @@
+docker exec -it 274ccb095fc0 mysql -u root -p
+
+
+
+
+obs
+
+19/11,
+
+Senha vivi está errada no banco. Trocar
+
+ajustado o arquivo docker-compose
+
+trocar arquivo .sql para manter as rotas junto com o nome correto das tabelas.
+
+Verificar a estrutura de tabelas pois aparentemente nao está coincidindo com app.py
