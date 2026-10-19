@@ -1,2 +1,3 @@
-flask
+Flask
+flask-bcrypt
 mysql-connector-python
