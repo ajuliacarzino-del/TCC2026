@@ -1,4 +1,3 @@
--- O arquivo deve começar direto aqui (sem CREATE DATABASE e sem USE)
 CREATE TABLE IF NOT EXISTS usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
@@ -11,21 +10,23 @@ CREATE TABLE IF NOT EXISTS produtos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     quantidade INT NOT NULL DEFAULT 0,
-    descricao VARCHAR(255)
+    categoria VARCHAR(50),
+    imagem_url VARCHAR(255)
 );
 
-CREATE TABLE IF NOT EXISTS retiradas (
+CREATE TABLE IF NOT EXISTS movimentacoes (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario INT NOT NULL,
-    id_produto INT NOT NULL,
-    quantidade INT NOT NULL,
-    data_retirada DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id),
-    FOREIGN KEY (id_produto) REFERENCES produtos(id)
-
+    produto_nome VARCHAR(100),
+    tipo VARCHAR(20),
+    quantidade INT,
+    data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-INSERT IGNORE INTO usuarios (nome, email, senha, tipo) 
+
+INSERT IGNORE INTO usuarios (nome, email, senha, tipo)
 VALUES ('Administrador', 'admin@tcc.com', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36YgyFcE7U967LdBfM1zTpi', 'admin');
 
-INSERT IGNORE INTO usuarios (nome, email, senha, tipo) 
+INSERT IGNORE INTO usuarios (nome, email, senha, tipo)
 VALUES ('vivi', 'vivi@tcc.com', '$2a$12$gbAz753lBjCLNas0yV8xSeHZ8jMcBYm00kTXI3vA3Wa2Q.ZvuoOI6', 'comum');
+
+INSERT IGNORE INTO usuarios (nome, email, senha, tipo)
+VALUES ('Admin Teste', 'admin@teste.com', '$2b$12$t/YseWDQ.TTnq4Sv2oNt8eTRvkUuWAAJJuMGVKPNov91g8m7QN6R2', 'admin');
