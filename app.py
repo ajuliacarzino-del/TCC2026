@@ -59,6 +59,7 @@ def adicio():
 
 
 # =====================================================
+# =====================================================
 #  API - GET (consultas)
 # =====================================================
 
@@ -132,14 +133,29 @@ def api_listar_movimentacoes():
 
 
 # =====================================================
-#  API - POST (gravações)
+#  API - POST (gravações) - REFATORADA E HÍBRIDA
 # =====================================================
 
 @app.route("/api/fazer_login", methods=["POST"])
 def api_fazer_login():
     try:
-        usuario = request.form.get("usuario")  # e-mail digitado na tela
-        senha = request.form.get("senha")
+        dados_json = request.get_json(silent=True)
+        
+        if dados_json:
+            usuario = dados_json.get("usuario") or dados_json.get("email")
+            senha = dados_json.get("senha")
+        else:
+            usuario = request.form.get("usuario") or request.form.get("email")
+            senha = request.form.get("senha")
+
+        if usuario: usuario = str(usuario).strip()
+        if senha: senha = str(senha).strip()
+
+        print("--- TENTATIVA DE LOGIN ---", flush=True)
+        print(f"Usuário recebido: {usuario}", flush=True)
+
+        if not usuario or not senha:
+            return jsonify({"status": "erro", "mensagem": "Usuário e senha são obrigatórios!"}), 400
 
         conn = conectar_bd()
         cursor = conn.cursor(dictionary=True)
@@ -149,21 +165,38 @@ def api_fazer_login():
 
         if user_bd and bcrypt.check_password_hash(user_bd["senha"], senha):
             proxima_pagina = "/adm" if user_bd["tipo"] == "admin" else "/almoxarifado"
+            print(f"Login bem-sucedido para: {usuario}", flush=True)
             return jsonify({"status": "sucesso", "redirect": proxima_pagina})
         else:
+            print(f"Falha de login para: {usuario} (401)", flush=True)
             return jsonify({"status": "erro", "mensagem": "Usuário ou senha incorretos!"}), 401
 
     except Exception as e:
+        print(f"ERRO NO LOGIN: {str(e)}", flush=True)
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
 
 @app.route("/api/cadastrar_usuario", methods=["POST"])
 def api_cadastrar_usuario():
     try:
-        email = request.form.get("usuario")
-        senha = request.form.get("senha")
-        tipo = request.form.get("permissao", "comum")
-        nome = request.form.get("nome", email)
+        dados_json = request.get_json(silent=True)
+        
+        if dados_json:
+            email = dados_json.get("email") or dados_json.get("usuario")
+            senha = dados_json.get("senha")
+            tipo = dados_json.get("tipo") or dados_json.get("permissao", "comum")
+            nome = dados_json.get("nome", email)
+        else:
+            email = request.form.get("usuario") or request.form.get("email")
+            senha = request.form.get("senha")
+            tipo = request.form.get("permissao") or request.form.get("tipo", "comum")
+            nome = request.form.get("nome", email)
+
+        if email: email = str(email).strip()
+        if senha: senha = str(senha).strip()
+
+        if not email or not senha:
+            return jsonify({"status": "erro", "mensagem": "E-mail e senha são obrigatórios!"}), 400
 
         senha_hash = bcrypt.generate_password_hash(senha).decode("utf-8")
 
@@ -176,19 +209,33 @@ def api_cadastrar_usuario():
         conn.commit()
         conn.close()
 
+        print(f"Usuário cadastrado com sucesso: {email}", flush=True)
         return jsonify({"status": "sucesso", "mensagem": "Usuário cadastrado com sucesso!"})
     except Exception as e:
+        print(f"ERRO NO CADASTRO DE USUÁRIO: {str(e)}", flush=True)
         return jsonify({"status": "erro", "mensagem": str(e)}), 400
 
 
 @app.route("/api/adicionar_item", methods=["POST"])
 def api_adicionar_item():
     try:
-        nome = request.form.get("nome")
-        quantidade = int(request.form.get("quantidade"))
-        categoria = request.form.get("categoria")
-        imagem_url = request.form.get("imagem_url")
+        dados_json = request.get_json(silent=True)
+        
+        if dados_json:
+            nome = dados_json.get("nome")
+            quantidade = dados_json.get("quantidade")
+            categoria = dados_json.get("categoria")
+            imagem_url = dados_json.get("imagem_url")
+        else:
+            nome = request.form.get("nome")
+            quantidade = request.form.get("quantidade")
+            categoria = request.form.get("categoria")
+            imagem_url = request.form.get("imagem_url")
 
+        if not nome or quantidade is None:
+            return jsonify({"status": "erro", "mensagem": "Nome e quantidade são obrigatórios!"}), 400
+
+        quantidade = int(quantidade)
         conn = conectar_bd()
         cursor = conn.cursor()
 
@@ -201,8 +248,7 @@ def api_adicionar_item():
                 cursor.execute("UPDATE produtos SET quantidade = %s, imagem_url = %s WHERE id = %s",
                                (nova_qtd, imagem_url, produto[0]))
             else:
-                cursor.execute("UPDATE produtos SET quantidade = %s WHERE id = %s",
-                               (nova_qtd, produto[0]))
+                cursor.execute("UPDATE produtos SET quantidade = %s WHERE id = %s", (nova_qtd, produto[0]))
         else:
             cursor.execute(
                 "INSERT INTO produtos (nome, quantidade, categoria, imagem_url) VALUES (%s, %s, %s, %s)",
@@ -217,17 +263,29 @@ def api_adicionar_item():
         conn.commit()
         conn.close()
 
+        print(f"Estoque atualizado: {nome} (+{quantidade})", flush=True)
         return jsonify({"status": "sucesso", "mensagem": "Item adicionado ao estoque!"})
     except Exception as e:
+        print(f"ERRO AO ADICIONAR ITEM: {str(e)}", flush=True)
         return jsonify({"status": "erro", "mensagem": str(e)}), 400
 
 
 @app.route("/api/retirar_item", methods=["POST"])
 def api_retirar_item():
     try:
-        produto_id = request.form.get("produto_id")
-        quantidade_retirada = int(request.form.get("quantidade"))
+        dados_json = request.get_json(silent=True)
+        
+        if dados_json:
+            produto_id = dados_json.get("produto_id")
+            quantidade_retirada = dados_json.get("quantidade")
+        else:
+            produto_id = request.form.get("produto_id")
+            quantidade_retirada = request.form.get("quantidade")
 
+        if not produto_id or quantidade_retirada is None:
+            return jsonify({"status": "erro", "mensagem": "ID do produto e quantidade são obrigatórios!"}), 400
+
+        quantidade_retirada = int(quantidade_retirada)
         conn = conectar_bd()
         cursor = conn.cursor(dictionary=True)
 
@@ -251,8 +309,10 @@ def api_retirar_item():
         conn.commit()
         conn.close()
 
+        print(f"Retirada realizada: {produto['nome']} (-{quantidade_retirada})", flush=True)
         return jsonify({"status": "sucesso", "mensagem": "Retirada realizada com sucesso!"})
     except Exception as e:
+        print(f"ERRO AO RETIRAR ITEM: {str(e)}", flush=True)
         return jsonify({"status": "erro", "mensagem": str(e)}), 400
 
 
