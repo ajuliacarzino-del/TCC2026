@@ -53,7 +53,14 @@
     <script>
         document.getElementById('formUsuario').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const res = await fetch('/cadastrar_usuario', { method: 'POST', body: new FormData(this) });
+
+
+            const res = await fetch('/api/cadastrar_usuario', { 
+                method: 'POST', 
+                body: new FormData(this) 
+            });
+
+
             const data = await res.json();
 
             if (res.ok) {

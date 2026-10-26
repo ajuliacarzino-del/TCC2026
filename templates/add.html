@@ -59,7 +59,12 @@
     <script>
         document.getElementById('formAddItem').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const res = await fetch('/adicionar_item', { method: 'POST', body: new FormData(this) });
+            
+           const res = await fetch('/api/adicionar_item', { 
+                    method: 'POST', 
+                    body: new FormData(this) 
+                });
+
             const data = await res.json();
 
             if (res.ok) {
