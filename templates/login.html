@@ -37,7 +37,8 @@
         document.getElementById('formLogin').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const res = await fetch('/fazer_login', {
+            // CORREÇÃO: Adicionado o prefixo /api na URL para bater com o backend
+            const res = await fetch('/api/fazer_login', {
                 method: 'POST',
                 body: new FormData(this)
             });

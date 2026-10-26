@@ -133,7 +133,7 @@ def api_listar_movimentacoes():
 
 
 # =====================================================
-#  API - POST (gravações) - REFATORADA E HÍBRIDA
+#  API - POST (gravações) 
 # =====================================================
 
 @app.route("/api/fazer_login", methods=["POST"])

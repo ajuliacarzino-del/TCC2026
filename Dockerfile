@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Instala todas as dependências direto pelo pip (sem precisar de requirements.txt)
+# 2. Instala todas as dependências direto pelo pip 
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir flask mysql-connector-python flask-bcrypt
 
