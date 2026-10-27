@@ -212,43 +212,9 @@ def api_cadastrar_usuario():
         print(f"Usuário cadastrado com sucesso: {email}", flush=True)
         return jsonify({"status": "sucesso", "mensagem": "Usuário cadastrado com sucesso!"})
     except Exception as e:
-        print(f"ERRO NO CADASTRO DE USUÁRIO: {str(e)}", flush=True)
+        print("ERRO NO CADASTRO DE USUÁRIO: {str(e)}", flush=True)
         return jsonify({"status": "erro", "mensagem": str(e)}), 400
-
-
-@app.route("/api/adicionar_item", methods=["POST"])
-def api_adicionar_item():
-    try:
-        dados_json = request.get_json(silent=True)
-        
-        if dados_json:
-            nome = dados_json.get("nome")
-            quantidade = dados_json.get("quantidade")
-            categoria = dados_json.get("categoria")
-            imagem_url = dados_json.get("imagem_url")
-        else:
-            nome = request.form.get("nome")
-            quantidade = request.form.get("quantidade")
-            categoria = request.form.get("categoria")
-            imagem_url = request.form.get("imagem_url")
-
-        if not nome or quantidade is None:
-            return jsonify({"status": "erro", "mensagem": "Nome e quantidade são obrigatórios!"}), 400
-
-        quantidade = int(quantidade)
-        conn = conectar_bd()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT id, quantidade FROM produtos WHERE nome = %s", (nome,))
-        produto = cursor.fetchone()
-
-        if produto:
-            nova_qtd = produto[1] + quantidade
-            if imagem_url:
-                cursor.execute("UPDATE produtos SET quantidade = %s, imagem_url = %s WHERE id = %s",
-                               (nova_qtd, imagem_url, produto[0]))
-            else:
-                cursor.execute("UPDATE produtos SET quantidade = %s WHERE id = %s", (nova_qtd, produto[0]))
+            cursor.execute("UPDATE produtos SET quantidade = %s WHERE id = %s", (nova_qtd, produto[0]))
         else:
             cursor.execute(
                 "INSERT INTO produtos (nome, quantidade, categoria, imagem_url) VALUES (%s, %s, %s, %s)",
@@ -270,51 +236,74 @@ def api_adicionar_item():
         return jsonify({"status": "erro", "mensagem": str(e)}), 400
 
 
-@app.route("/api/retirar_item", methods=["POST"])
+@app.route("/api/retirar_item", methods=["POST"]) #ERROOO
 def api_retirar_item():
+    conn = None
     try:
-        dados_json = request.get_json(silent=True)
-        
-        if dados_json:
-            produto_id = dados_json.get("produto_id")
-            quantidade_retirada = dados_json.get("quantidade")
-        else:
-            produto_id = request.form.get("produto_id")
-            quantidade_retirada = request.form.get("quantidade")
+        dados = request.get_json(silent=True) or request.form
 
-        if not produto_id or quantidade_retirada is None:
+        produto_id = dados.get("produto_id")
+        quantidade_retirada = dados.get("quantidade")
+
+        if produto_id is None or quantidade_retirada is None:
             return jsonify({"status": "erro", "mensagem": "ID do produto e quantidade são obrigatórios!"}), 400
 
-        quantidade_retirada = int(quantidade_retirada)
+        try:
+            produto_id = int(produto_id)
+            quantidade_retirada = int(quantidade_retirada)
+        except (ValueError, TypeError):
+            return jsonify({"status": "erro", "mensagem": "ID e quantidade devem ser números!"}), 400
+
+        if quantidade_retirada <= 0:
+            return jsonify({"status": "erro", "mensagem": "A quantidade deve ser maior que zero!"}), 400
+
         conn = conectar_bd()
         cursor = conn.cursor(dictionary=True)
 
-        cursor.execute("SELECT * FROM produtos WHERE id = %s", (produto_id,))
+        # FOR UPDATE trava a linha, evitando duas retiradas ao mesmo tempo
+        cursor.execute("SELECT * FROM produtos WHERE id = %S FOR UPDATE", (produto_id,))
         produto = cursor.fetchone()
 
         if not produto:
-            conn.close()
+            conn.rollback()
             return jsonify({"status": "erro", "mensagem": "Produto não encontrado!"}), 404
 
+        # Deixa as chaves em minúsculo, funciona com "Nome"/"Quantidade" ou "nome"/"quantidade"
+        produto = {k.lower(): v for k, v in produto.items()}
+
         if produto["quantidade"] < quantidade_retirada:
-            conn.close()
-            return jsonify({"status": "erro", "mensagem": f"Estoque insuficiente! Disponível: {produto['quantidade']}"}), 400
+            conn.rollback()
+            return jsonify({
+                "status": "erro",
+                "mensagem": f"Estoque insuficiente! Disponível: {produto['quantidade']}"
+            }), 400
 
         nova_qtd = produto["quantidade"] - quantidade_retirada
-        cursor.execute("UPDATE produtos SET quantidade = %s WHERE id = %s", (nova_qtd, produto_id))
 
-        cursor.execute("INSERT INTO movimentacoes (produto_nome, tipo, quantidade) VALUES (%s, 'Saída', %s)",
-                       (produto["nome"], quantidade_retirada))
+        cursor.execute(
+            "UPDATE produtos SET quantidade = %s WHERE id = %s",
+            (nova_qtd, produto_id)
+        )
+
+        cursor.execute(
+            "INSERT INTO movimentacoes (produto_nome, tipo, quantidade) VALUES (%s, %s, %s)",
+            (produto["nome"], "Saída", quantidade_retirada)
+        )
 
         conn.commit()
-        conn.close()
 
         print(f"Retirada realizada: {produto['nome']} (-{quantidade_retirada})", flush=True)
         return jsonify({"status": "sucesso", "mensagem": "Retirada realizada com sucesso!"})
-    except Exception as e:
-        print(f"ERRO AO RETIRAR ITEM: {str(e)}", flush=True)
-        return jsonify({"status": "erro", "mensagem": str(e)}), 400
 
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"ERRO AO RETIRAR ITEM: {e}", flush=True)
+        return jsonify({"status": "erro", "mensagem": "Erro interno ao realizar a retirada."}), 500
+
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
