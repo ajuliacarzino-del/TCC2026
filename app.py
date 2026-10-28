@@ -133,7 +133,7 @@ def api_listar_movimentacoes():
 
 
 # =====================================================
-#  API - POST (gravações) 
+# # API - POST (gravações) 
 # =====================================================
 
 @app.route("/api/fazer_login", methods=["POST"])
@@ -207,20 +207,45 @@ def api_cadastrar_usuario():
             (nome, email, senha_hash, tipo)
         )
         conn.commit()
-        conn.close()
-
+        conn.close() 
+        
         print(f"Usuário cadastrado com sucesso: {email}", flush=True)
         return jsonify({"status": "sucesso", "mensagem": "Usuário cadastrado com sucesso!"})
     except Exception as e:
-        print("ERRO NO CADASTRO DE USUÁRIO: {str(e)}", flush=True)
+        print(f"ERRO NO CADASTRO DE USUÁRIO: {e}", flush=True)
         return jsonify({"status": "erro", "mensagem": str(e)}), 400
-            cursor.execute("UPDATE produtos SET quantidade = %s WHERE id = %s", (nova_qtd, produto[0]))
-        else:
-            cursor.execute(
-                "INSERT INTO produtos (nome, quantidade, categoria, imagem_url) VALUES (%s, %s, %s, %s)",
-                (nome, quantidade, categoria, imagem_url)
-            )
 
+
+@app.route("/api/adicionar_item", methods=["POST"])
+def api_adicionar_item():
+    try:
+        dados_json = request.get_json(silent=True)
+        
+        if dados_json:
+            nome = dados_json.get("nome") or dados_json.get("produto_nome")
+            quantidade = dados_json.get("quantidade")
+        else:
+            nome = request.form.get("nome") or request.form.get("produto_nome")
+            quantidade = request.form.get("quantidade")
+
+        if not nome or not quantidade:
+            return jsonify({"status": "erro", "mensagem": "Nome do produto e quantidade são obrigatórios!"}), 400
+
+        quantidade = int(quantidade)
+        if quantidade <= 0:
+            return jsonify({"status": "erro", "mensagem": "A quantidade deve ser maior que zero!"}), 400
+
+        conn = conectar_bd()
+        cursor = conn.cursor()
+        
+        # 1) Insere ou Atualiza o estoque do produto
+        cursor.execute(
+            "INSERT INTO produtos (nome, quantidade) VALUES (%s, %s) "
+            "ON DUPLICATE KEY UPDATE quantidade = quantidade + %s",
+            (nome, quantidade, quantidade)
+        )
+        
+        # 2) Registra a movimentação de entrada
         cursor.execute(
             "INSERT INTO movimentacoes (produto_nome, tipo, quantidade) VALUES (%s, 'Entrada', %s)",
             (nome, quantidade)
@@ -236,72 +261,84 @@ def api_cadastrar_usuario():
         return jsonify({"status": "erro", "mensagem": str(e)}), 400
 
 
-@app.route("/api/retirar_item", methods=["POST"]) #ERROOO
+@app.route("/api/retirar_item", methods=["POST"])
 def api_retirar_item():
-    conn = None
+    dados = request.get_json(silent=True) or request.form
+
     try:
-        dados = request.get_json(silent=True) or request.form
+        produto_id = int(dados.get("produto_id"))
+        quantidade = int(dados.get("quantidade"))
+    except (TypeError, ValueError):
+        return jsonify({
+            "status": "erro",
+            "mensagem": "ID do produto e quantidade devem ser números válidos!"
+        }), 400
 
-        produto_id = dados.get("produto_id")
-        quantidade_retirada = dados.get("quantidade")
+    if quantidade <= 0:
+        return jsonify({
+            "status": "erro",
+            "mensagem": "A quantidade deve ser maior que zero!"
+        }), 400
 
-        if produto_id is None or quantidade_retirada is None:
-            return jsonify({"status": "erro", "mensagem": "ID do produto e quantidade são obrigatórios!"}), 400
-
-        try:
-            produto_id = int(produto_id)
-            quantidade_retirada = int(quantidade_retirada)
-        except (ValueError, TypeError):
-            return jsonify({"status": "erro", "mensagem": "ID e quantidade devem ser números!"}), 400
-
-        if quantidade_retirada <= 0:
-            return jsonify({"status": "erro", "mensagem": "A quantidade deve ser maior que zero!"}), 400
-
+    conn = None
+    cursor = None
+    try:
         conn = conectar_bd()
+
+        if conn.in_transaction:
+            conn.rollback()
+        conn.start_transaction()
+
         cursor = conn.cursor(dictionary=True)
 
-        # FOR UPDATE trava a linha, evitando duas retiradas ao mesmo tempo
-        cursor.execute("SELECT * FROM produtos WHERE id = %S FOR UPDATE", (produto_id,))
+        cursor.execute(
+            "SELECT id, nome, quantidade FROM produtos WHERE id = %s FOR UPDATE",
+            (produto_id,)
+        )
         produto = cursor.fetchone()
 
         if not produto:
             conn.rollback()
             return jsonify({"status": "erro", "mensagem": "Produto não encontrado!"}), 404
 
-        # Deixa as chaves em minúsculo, funciona com "Nome"/"Quantidade" ou "nome"/"quantidade"
-        produto = {k.lower(): v for k, v in produto.items()}
-
-        if produto["quantidade"] < quantidade_retirada:
+        if produto["quantidade"] < quantidade:
             conn.rollback()
             return jsonify({
                 "status": "erro",
                 "mensagem": f"Estoque insuficiente! Disponível: {produto['quantidade']}"
             }), 400
 
-        nova_qtd = produto["quantidade"] - quantidade_retirada
-
         cursor.execute(
-            "UPDATE produtos SET quantidade = %s WHERE id = %s",
-            (nova_qtd, produto_id)
+            "UPDATE produtos SET quantidade = quantidade - %s WHERE id = %s",
+            (quantidade, produto_id)
         )
 
         cursor.execute(
             "INSERT INTO movimentacoes (produto_nome, tipo, quantidade) VALUES (%s, %s, %s)",
-            (produto["nome"], "Saída", quantidade_retirada)
+            (produto["nome"], "Saída", quantidade)
         )
 
         conn.commit()
 
-        print(f"Retirada realizada: {produto['nome']} (-{quantidade_retirada})", flush=True)
-        return jsonify({"status": "sucesso", "mensagem": "Retirada realizada com sucesso!"})
+        print(f"Retirada realizada: {produto['nome']} (-{quantidade})", flush=True)
+        return jsonify({
+            "status": "sucesso",
+            "mensagem": "Retirada realizada com sucesso!",
+            "estoque_atual": produto["quantidade"] - quantidade
+        })
 
     except Exception as e:
         if conn:
             conn.rollback()
         print(f"ERRO AO RETIRAR ITEM: {e}", flush=True)
-        return jsonify({"status": "erro", "mensagem": "Erro interno ao realizar a retirada."}), 500
+        return jsonify({
+            "status": "erro",
+            "mensagem": "Erro interno ao realizar a retirada."
+        }), 500
 
     finally:
+        if cursor:
+            cursor.close()
         if conn:
             conn.close()
 
