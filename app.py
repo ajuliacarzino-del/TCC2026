@@ -15,9 +15,9 @@ def conectar_bd():
     )
 
 
-# =====================================================
+
 #  ROTAS HTML (páginas)
-# =====================================================
+
 
 @app.route("/")
 def login():
@@ -58,10 +58,9 @@ def adicio():
     return render_template("adicio.html")
 
 
-# =====================================================
-# =====================================================
+
+
 #  API - GET (consultas)
-# =====================================================
 
 @app.route("/api/produtos", methods=["GET"])
 def api_listar_produtos():
@@ -132,9 +131,8 @@ def api_listar_movimentacoes():
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
 
 
-# =====================================================
-# # API - POST (gravações) 
-# =====================================================
+ # API - POST (gravações) 
+
 
 @app.route("/api/fazer_login", methods=["POST"])
 def api_fazer_login():
@@ -225,12 +223,12 @@ def api_adicionar_item():
             nome = dados_json.get("nome") or dados_json.get("produto_nome")
             quantidade = dados_json.get("quantidade")
             imagem_url = dados_json.get("imagem_url")
-            categoria = dados_json.get("categoria")  # Captura a categoria do JSON
+            categoria = dados_json.get("categoria") 
         else:
             nome = request.form.get("nome") or request.form.get("produto_nome")
             quantidade = request.form.get("quantidade")
             imagem_url = request.form.get("imagem_url")
-            categoria = request.form.get("categoria")  # Captura a categoria do Form
+            categoria = request.form.get("categoria") 
 
         if not nome or not quantidade:
             return jsonify({"status": "erro", "mensagem": "Nome do produto e quantidade são obrigatórios!"}), 400
@@ -239,15 +237,13 @@ def api_adicionar_item():
         if quantidade <= 0:
             return jsonify({"status": "erro", "mensagem": "A quantidade deve ser maior que zero!"}), 400
 
-        # Tratamento de Strings e Valores Nulos
+       
         imagem_url = str(imagem_url).strip() if imagem_url else None
-        categoria = str(categoria).strip() if categoria else "Geral"  # Define "Geral" se vier vazio
+        categoria = str(categoria).strip() if categoria else "Geral" 
 
         conn = conectar_bd()
         cursor = conn.cursor()
         
-        # 1) Insere ou Atualiza o estoque do produto (incluindo imagem_url e categoria)
-        # VALUES(coluna) garante que o MySQL use o dado novo enviado no parâmetro caso o item já exista
         cursor.execute(
             "INSERT INTO produtos (nome, quantidade, imagem_url, categoria) VALUES (%s, %s, %s, %s) "
             "ON DUPLICATE KEY UPDATE "
@@ -257,7 +253,6 @@ def api_adicionar_item():
             (nome, quantidade, imagem_url, categoria)
         )
         
-        # 2) Registra a movimentação de entrada
         cursor.execute(
             "INSERT INTO movimentacoes (produto_nome, tipo, quantidade) VALUES (%s, 'Entrada', %s)",
             (nome, quantidade)
@@ -273,7 +268,7 @@ def api_adicionar_item():
         return jsonify({"status": "erro", "mensagem": str(e)}), 400
 
         
-        # 2) Registra a movimentação de entrada
+        
         cursor.execute(
             "INSERT INTO movimentacoes (produto_nome, tipo, quantidade) VALUES (%s, 'Entrada', %s)",
             (nome, quantidade)
@@ -290,24 +285,23 @@ def api_adicionar_item():
 
 
 
-import json  # Certifique-se de ter essa importação no topo do arquivo
-
+import json 
 @app.route("/api/retirar_item", methods=["POST"])
 def api_retirar_item():
     dados = request.get_json(silent=True)
     
-    # Correção: Se chegar como string pura, converte em dicionário do Python
+  
     if isinstance(dados, str):
         try:
             dados = json.loads(dados)
         except Exception:
             dados = None
             
-    # Se não veio JSON válido, tenta ler os dados do formulário tradicional
+
     if not dados:
         dados = request.form
 
-    # 1) Validação da entrada
+   
     try:
         produto_id = int(dados.get("produto_id"))
         quantidade = int(dados.get("quantidade"))
