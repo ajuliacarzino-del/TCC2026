@@ -13,7 +13,7 @@ import {
   Switch
 } from 'react-native';
 
-const API_URL = 'http://10.154.20.42:5000';
+const API_URL = 'http://172.20.208.1:5000';
 
 // Definição das abas do menu de navegação superior
 const MENU = [
@@ -26,7 +26,7 @@ const MENU = [
 export default function App() {
   // Estados Globais de Sessão e Navegação
   const [logado, setLogado] = useState(false);
-  const [telaAtiva, setTelaAtiva] = useState('usuarios'); // Começa na tela de usuários pós-login
+  const [telaAtiva, setTelaAtiva] = useState('usuarios');
 
   // Estados do Formulário de Login
   const [usuario, setUsuario] = useState('');
@@ -54,7 +54,6 @@ export default function App() {
   // REQUISIÇÕES DA API
   // ==========================================
 
-  // 1. Função de Login Original Preservada
   const lidarComLogin = async () => {
     if (!usuario || !senha) {
       Alert.alert('Aviso', 'Por favor, preencha todos os campos.');
@@ -74,7 +73,7 @@ export default function App() {
       if (resposta.ok && data.status === 'sucesso') {
         Alert.alert('Sucesso', 'Login realizado com sucesso!');
         setLogado(true);
-        setTelaAtiva('usuarios'); // Força ir para a tela de adicionar pessoas
+        setTelaAtiva('usuarios');
       } else {
         Alert.alert('Falha no Login', data.mensagem || 'Usuário ou senha incorretos.');
       }
@@ -86,7 +85,6 @@ export default function App() {
     }
   };
 
-  // 2. Buscar Estoque do Servidor
   const carregarEstoque = async () => {
     try {
       setAtualizandoEstoque(true);
@@ -106,14 +104,12 @@ export default function App() {
     }
   };
 
-  // Carrega o estoque automaticamente sempre que o usuário entrar na aba Almoxarifado
   useEffect(() => {
     if (logado && telaAtiva === 'almoxarifado') {
       carregarEstoque();
     }
   }, [telaAtiva, logado]);
 
-  // 3. Cadastrar Novo Usuário (Adicionar Pessoas)
   const lidarComCadastroUsuario = async () => {
     if (!novoUsuario.trim() || !novaSenha) {
       Alert.alert('Aviso', 'Preencha o nome de usuário e a senha.');
@@ -141,7 +137,6 @@ export default function App() {
     }
   };
 
-  // 4. Cadastrar Novo Item no Estoque
   const lidarComCadastroItem = async () => {
     if (!nomeItem.trim() || !qtdItem) {
       Alert.alert('Aviso', 'Preencha o nome do item e a quantidade.');
@@ -165,7 +160,6 @@ export default function App() {
     }
   };
 
-  // 5. Registrar Retirada/Baixa de Item
   const lidarComRetiradaItem = async () => {
     if (!idItemRetirada || !qtdRetirada) {
       Alert.alert('Aviso', 'Informe o ID do item e a quantidade que deseja retirar.');
@@ -189,7 +183,6 @@ export default function App() {
     }
   };
 
-  // Logout do sistema
   const fazerLogout = () => {
     setLogado(false);
     setUsuario('');
@@ -197,14 +190,12 @@ export default function App() {
   };
 
   // ==========================================
-  // RENDERIZAÇÃO DE TELAS INTERNES
+  // RENDERIZAÇÃO DE TELAS
   // ==========================================
 
-  // Se o usuário NÃO está logado, exibe sua tela de Login original intacta
   if (!logado) {
     return (
       <View style={styles.fundo}>
-        <View style={styles.overlay} />
         <View style={styles.loginContainer}>
           <View style={styles.logoArea}><Text style={styles.logoTexto}>SENAI</Text></View>
           <Text style={styles.tituloHeader}>Sistema</Text>
@@ -215,7 +206,7 @@ export default function App() {
             <TextInput
               style={styles.input}
               placeholder="Digite seu usuário"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               value={usuario}
               onChangeText={setUsuario}
               autoCapitalize="none"
@@ -227,7 +218,7 @@ export default function App() {
             <TextInput
               style={styles.input}
               placeholder="Digite sua senha"
-              placeholderTextColor="#ccc"
+              placeholderTextColor="#888"
               value={senha}
               onChangeText={setSenha}
               secureTextEntry={true}
@@ -244,12 +235,11 @@ export default function App() {
     );
   }
 
-  // Se o usuário ESTÁ logado, renderiza o Dashboard com Menu e as Telas Internas
   return (
     <View style={styles.containerDashboard}>
       {/* Cabeçalho do Dashboard */}
       <View style={styles.navbar}>
-        <Text style={styles.navbarLogo}>SENAI</Text>
+        <Text style={styles.navbarLogo}>SENAI - Almoxarifado</Text>
         <TouchableOpacity onPress={fazerLogout} style={styles.btnSair}>
           <Text style={styles.btnSairTexto}>Sair</Text>
         </TouchableOpacity>
@@ -270,16 +260,362 @@ export default function App() {
         </ScrollView>
       </View>
 
-      {/* Renderização Condicional das Telas Baseado na Aba Ativa */}
-      <View style={styles.conteudoTela}>
+      {/* Conteúdo Dinâmico */}
+      <ScrollView contentContainerStyle={styles.conteudoTela}>
         
-        {/* Tela: Adicionar Pessoas / Usuários */}
+        {/* Tela: Adicionar Usuário */}
         {telaAtiva === 'usuarios' && (
           <View style={styles.cardInterno}>
             <Text style={styles.tituloInterno}>Adicionar Novo Usuário</Text>
+            
             <View style={styles.formGroup}>
               <Text style={styles.labelInterno}>Nome de Usuário:</Text>
-              <TextInput style={styles.inputInterno} placeholder="Ex: joao.silva" value={novoUsuario} onChangeText={setNovoUsuario} autoCapitalize="none" />
+              <TextInput style={styles.inputInterno} placeholder="Ex: joao.silva" placeholderTextColor="#888" value={novoUsuario} onChangeText={setNovoUsuario} autoCapitalize="none" />
             </View>
+
             <View style={styles.formGroup}>
               <Text style={styles.labelInterno}>Senha do Usuário:</Text>
+              <TextInput style={styles.inputInterno} placeholder="Digite a senha" placeholderTextColor="#888" secureTextEntry value={novaSenha} onChangeText={setNovaSenha} autoCapitalize="none" />
+            </View>
+
+            <View style={styles.switchContainer}>
+              <Text style={styles.labelInterno}>Perfil Administrador?</Text>
+              <Switch value={isAdmin} onValueChange={setIsAdmin} />
+            </View>
+
+            <TouchableOpacity style={styles.btnAcao} onPress={lidarComCadastroUsuario}>
+              <Text style={styles.btnTexto}>Cadastrar Usuário</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Tela: Ver Estoque */}
+        {telaAtiva === 'almoxarifado' && (
+          <View style={styles.cardInterno}>
+            <View style={styles.estoqueHeader}>
+              <Text style={styles.tituloInterno}>Estoque Atual</Text>
+              <TouchableOpacity onPress={carregarEstoque} style={styles.btnAtualizar}>
+                <Text style={styles.btnAtualizarTexto}>Atualizar</Text>
+              </TouchableOpacity>
+            </View>
+
+            {atualizandoEstoque ? (
+              <ActivityIndicator size="large" color="#0056b3" style={{ marginVertical: 20 }} />
+            ) : (
+              <FlatList
+                data={listaEstoque}
+                keyExtractor={(item, index) => String(item.id || index)}
+                scrollEnabled={false}
+                ListEmptyComponent={<Text style={styles.textoVazio}>Nenhum item cadastrado no estoque.</Text>}
+                renderItem={({ item }) => (
+                  <View style={styles.itemEstoqueCard}>
+                    <View>
+                      <Text style={styles.itemNome}>{item.nome || item.descricao}</Text>
+                      <Text style={styles.itemId}>ID: {item.id}</Text>
+                    </View>
+                    <View style={styles.badgeQtd}>
+                      <Text style={styles.badgeTexto}>{item.quantidade} un</Text>
+                    </View>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        )}
+
+        {/* Tela: Adicionar Item */}
+        {telaAtiva === 'add_item' && (
+          <View style={styles.cardInterno}>
+            <Text style={styles.tituloInterno}>Adicionar Novo Item ao Estoque</Text>
+            
+            <View style={styles.formGroup}>
+              <Text style={styles.labelInterno}>Nome do Produto:</Text>
+              <TextInput style={styles.inputInterno} placeholder="Ex: Chave de Fenda" placeholderTextColor="#888" value={nomeItem} onChangeText={setNomeItem} />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.labelInterno}>Quantidade Inicial:</Text>
+              <TextInput style={styles.inputInterno} placeholder="Ex: 10" placeholderTextColor="#888" keyboardType="numeric" value={qtdItem} onChangeText={setQtdItem} />
+            </View>
+
+            <TouchableOpacity style={styles.btnAcao} onPress={lidarComCadastroItem}>
+              <Text style={styles.btnTexto}>Salvar Item</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Tela: Retirar Item */}
+        {telaAtiva === 'retirada' && (
+          <View style={styles.cardInterno}>
+            <Text style={styles.tituloInterno}>Registrar Retirada de Item</Text>
+            
+            <View style={styles.formGroup}>
+              <Text style={styles.labelInterno}>ID do Item:</Text>
+              <TextInput style={styles.inputInterno} placeholder="Ex: 1" placeholderTextColor="#888" keyboardType="numeric" value={idItemRetirada} onChangeText={setIdItemRetirada} />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.labelInterno}>Quantidade a Retirar:</Text>
+              <TextInput style={styles.inputInterno} placeholder="Ex: 2" placeholderTextColor="#888" keyboardType="numeric" value={qtdRetirada} onChangeText={setQtdRetirada} />
+            </View>
+
+            <TouchableOpacity style={styles.btnAcaoPerigo} onPress={lidarComRetiradaItem}>
+              <Text style={styles.btnTexto}>Confirmar Retirada</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+      </ScrollView>
+    </View>
+  );
+}
+
+// ==========================================
+// ESTILOS DO APLICATIVO
+// ==========================================
+
+const styles = StyleSheet.create({
+  // Tela de Login
+  fundo: {
+    flex: 1,
+    backgroundColor: '#003366', // Azul institucional corporativo
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loginContainer: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  logoArea: {
+    alignSelf: 'center',
+    marginBottom: 10,
+  },
+  logoTexto: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#003366',
+    letterSpacing: 2,
+  },
+  tituloHeader: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+  },
+  subtitulo: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+
+  // Formulários Gerais
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 6,
+  },
+  input: {
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  btnSubmit: {
+    backgroundColor: '#0056b3',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  btnTexto: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  // Dashboard e Navegação
+  containerDashboard: {
+    flex: 1,
+    backgroundColor: '#f4f6f9',
+  },
+  navbar: {
+    flexDirection: 'row',
+    backgroundColor: '#003366',
+    paddingTop: 45,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  navbarLogo: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  btnSair: {
+    backgroundColor: '#cc0000',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  btnSairTexto: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  menuContainer: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    paddingVertical: 10,
+  },
+  menuLink: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 6,
+    borderRadius: 20,
+    backgroundColor: '#eef2f7',
+  },
+  menuLinkAtivo: {
+    backgroundColor: '#0056b3',
+  },
+  menuTexto: {
+    color: '#333',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  menuTextoAtivo: {
+    color: '#fff',
+  },
+
+  // Conteúdo e Cards Internos
+  conteudoTela: {
+    padding: 16,
+  },
+  cardInterno: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  tituloInterno: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#003366',
+    marginBottom: 16,
+  },
+  labelInterno: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: 6,
+  },
+  inputInterno: {
+    backgroundColor: '#fafafa',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#333',
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  btnAcao: {
+    backgroundColor: '#28a745',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  btnAcaoPerigo: {
+    backgroundColor: '#dc3545',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+
+  // Listagem de Estoque
+  estoqueHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  btnAtualizar: {
+    backgroundColor: '#e0e0e0',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  btnAtualizarTexto: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+  },
+  itemEstoqueCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#eee',
+    marginBottom: 10,
+  },
+  itemNome: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  itemId: {
+    fontSize: 12,
+    color: '#777',
+  },
+  badgeQtd: {
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  badgeTexto: {
+    color: '#0d47a1',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  textoVazio: {
+    textAlign: 'center',
+    color: '#888',
+    marginTop: 20,
+    fontStyle: 'italic',
+  },
+});
