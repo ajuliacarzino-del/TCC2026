@@ -12,15 +12,37 @@ import {
   FlatList,
   Switch
 } from 'react-native';
+import TelaGerenciarItens from './add';
 
-const API_URL = 'http://172.20.208.1:5000';
+const API_URL = 'http://10.154.21.16:5000';
+
+// Faz fetch com tempo limite (8 segundos). Sem isso, se o servidor não for
+// alcançado, o app fica "carregando" para sempre.
+const fetchComTimeout = async (url, opcoes = {}, tempoMs = 8000) => {
+  const controlador = new AbortController();
+  const timer = setTimeout(() => controlador.abort(), tempoMs);
+  try {
+    return await fetch(url, { ...opcoes, signal: controlador.signal });
+  } catch (erro) {
+    if (erro.name === 'AbortError') throw new Error('TIMEOUT');
+    throw erro;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+const mensagemDeRede = (apiUrl, erro) => {
+  if (erro && erro.message === 'TIMEOUT') {
+    return `O servidor não respondeu em 8 segundos.\n\nEndereço usado: ${apiUrl}\n\nConfira se o IP está certo, se o Flask está com host='0.0.0.0' e se o firewall liberou a porta 5000.`;
+  }
+  return `Não foi possível conectar ao servidor.\n\nEndereço usado: ${apiUrl}`;
+};
 
 // Definição das abas do menu de navegação superior
 const MENU = [
   ['usuarios', 'Adicionar Usuário'],
   ['almoxarifado', 'Ver Estoque'],
-  ['add_item', 'Adicionar Item'],
-  ['retirada', 'Retirar Item'],
+  ['itens', 'Gerenciar Itens'],
 ];
 
 export default function App() {
@@ -42,14 +64,6 @@ export default function App() {
   const [listaEstoque, setListaEstoque] = useState([]);
   const [atualizandoEstoque, setAtualizandoEstoque] = useState(false);
 
-  // Estados da Tela de Adicionar Item
-  const [nomeItem, setNomeItem] = useState('');
-  const [qtdItem, setQtdItem] = useState('');
-
-  // Estados da Tela de Retirada
-  const [idItemRetirada, setIdItemRetirada] = useState('');
-  const [qtdRetirada, setQtdRetirada] = useState('');
-
   // ==========================================
   // REQUISIÇÕES DA API
   // ==========================================
@@ -62,7 +76,7 @@ export default function App() {
 
     try {
       setCarregando(true);
-      const resposta = await fetch(`${API_URL}/api/fazer_login`, {
+      const resposta = await fetchComTimeout(`${API_URL}/api/fazer_login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario: usuario, senha: senha })
@@ -79,7 +93,7 @@ export default function App() {
       }
     } catch (erro) {
       console.error(erro);
-      Alert.alert('Erro de Rede', 'Não foi possível conectar ao servidor do almoxarifado.');
+      Alert.alert('Erro de Rede', mensagemDeRede(API_URL, erro));
     } finally {
       setCarregando(false);
     }
@@ -88,7 +102,7 @@ export default function App() {
   const carregarEstoque = async () => {
     try {
       setAtualizandoEstoque(true);
-      const resposta = await fetch(`${API_URL}/api/estoque`);
+      const resposta = await fetchComTimeout(`${API_URL}/api/estoque`);
       const data = await resposta.json();
       
       if (resposta.ok) {
@@ -98,7 +112,7 @@ export default function App() {
       }
     } catch (erro) {
       console.error(erro);
-      Alert.alert('Erro', 'Falha ao buscar dados do estoque no servidor.');
+      Alert.alert('Erro de Rede', mensagemDeRede(API_URL, erro));
     } finally {
       setAtualizandoEstoque(false);
     }
@@ -116,7 +130,7 @@ export default function App() {
       return;
     }
     try {
-      const resposta = await fetch(`${API_URL}/api/usuarios`, {
+      const resposta = await fetchComTimeout(`${API_URL}/api/usuarios`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,53 +147,7 @@ export default function App() {
         Alert.alert('Erro', data.mensagem || 'Não foi possível criar o usuário.');
       }
     } catch (erro) {
-      Alert.alert('Erro de Rede', 'Servidor indisponível.');
-    }
-  };
-
-  const lidarComCadastroItem = async () => {
-    if (!nomeItem.trim() || !qtdItem) {
-      Alert.alert('Aviso', 'Preencha o nome do item e a quantidade.');
-      return;
-    }
-    try {
-      const resposta = await fetch(`${API_URL}/api/estoque`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: nomeItem.trim(), quantidade: parseInt(qtdItem) })
-      });
-      const data = await resposta.json();
-      if (resposta.ok) {
-        Alert.alert('Sucesso', 'Item adicionado ao estoque!');
-        setNomeItem(''); setQtdItem('');
-      } else {
-        Alert.alert('Erro', data.mensagem || 'Falha ao cadastrar item.');
-      }
-    } catch (erro) {
-      Alert.alert('Erro de Rede', 'Não foi possível salvar o produto.');
-    }
-  };
-
-  const lidarComRetiradaItem = async () => {
-    if (!idItemRetirada || !qtdRetirada) {
-      Alert.alert('Aviso', 'Informe o ID do item e a quantidade que deseja retirar.');
-      return;
-    }
-    try {
-      const resposta = await fetch(`${API_URL}/api/movimentar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: idItemRetirada, quantidade: parseInt(qtdRetirada), tipo: 'saida' })
-      });
-      const data = await resposta.json();
-      if (resposta.ok) {
-        Alert.alert('Sucesso', 'Retirada efetuada e registrada!');
-        setIdItemRetirada(''); setQtdRetirada('');
-      } else {
-        Alert.alert('Erro', data.mensagem || 'Quantidade insuficiente ou item inválido.');
-      }
-    } catch (erro) {
-      Alert.alert('Erro de Rede', 'Não foi possível registrar a movimentação.');
+      Alert.alert('Erro de Rede', mensagemDeRede(API_URL, erro));
     }
   };
 
@@ -261,7 +229,7 @@ export default function App() {
       </View>
 
       {/* Conteúdo Dinâmico */}
-      <ScrollView contentContainerStyle={styles.conteudoTela}>
+      <ScrollView contentContainerStyle={styles.conteudoTela} keyboardShouldPersistTaps="handled">
         
         {/* Tela: Adicionar Usuário */}
         {telaAtiva === 'usuarios' && (
@@ -323,47 +291,8 @@ export default function App() {
           </View>
         )}
 
-        {/* Tela: Adicionar Item */}
-        {telaAtiva === 'add_item' && (
-          <View style={styles.cardInterno}>
-            <Text style={styles.tituloInterno}>Adicionar Novo Item ao Estoque</Text>
-            
-            <View style={styles.formGroup}>
-              <Text style={styles.labelInterno}>Nome do Produto:</Text>
-              <TextInput style={styles.inputInterno} placeholder="Ex: Chave de Fenda" placeholderTextColor="#888" value={nomeItem} onChangeText={setNomeItem} />
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.labelInterno}>Quantidade Inicial:</Text>
-              <TextInput style={styles.inputInterno} placeholder="Ex: 10" placeholderTextColor="#888" keyboardType="numeric" value={qtdItem} onChangeText={setQtdItem} />
-            </View>
-
-            <TouchableOpacity style={styles.btnAcao} onPress={lidarComCadastroItem}>
-              <Text style={styles.btnTexto}>Salvar Item</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Tela: Retirar Item */}
-        {telaAtiva === 'retirada' && (
-          <View style={styles.cardInterno}>
-            <Text style={styles.tituloInterno}>Registrar Retirada de Item</Text>
-            
-            <View style={styles.formGroup}>
-              <Text style={styles.labelInterno}>ID do Item:</Text>
-              <TextInput style={styles.inputInterno} placeholder="Ex: 1" placeholderTextColor="#888" keyboardType="numeric" value={idItemRetirada} onChangeText={setIdItemRetirada} />
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.labelInterno}>Quantidade a Retirar:</Text>
-              <TextInput style={styles.inputInterno} placeholder="Ex: 2" placeholderTextColor="#888" keyboardType="numeric" value={qtdRetirada} onChangeText={setQtdRetirada} />
-            </View>
-
-            <TouchableOpacity style={styles.btnAcaoPerigo} onPress={lidarComRetiradaItem}>
-              <Text style={styles.btnTexto}>Confirmar Retirada</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Tela: Gerenciar Itens (Adicionar e Retirar) - página separada */}
+        {telaAtiva === 'itens' && <TelaGerenciarItens />}
 
       </ScrollView>
     </View>
@@ -550,13 +479,6 @@ const styles = StyleSheet.create({
   },
   btnAcao: {
     backgroundColor: '#28a745',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  btnAcaoPerigo: {
-    backgroundColor: '#dc3545',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
