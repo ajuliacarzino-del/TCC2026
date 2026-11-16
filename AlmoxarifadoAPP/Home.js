@@ -7,8 +7,8 @@ export default function Home() {
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    // Busca os dados da API assim que a tela abre
-    buscarDados('usuarios') // muda 'usuarios' para o seu endpoint
+    
+    buscarDados('usuarios') 
       .then(resposta => setDados(resposta))
       .catch(erro => console.log(erro))
       .finally(() => setCarregando(false));
@@ -22,7 +22,7 @@ export default function Home() {
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <Text>Dados carregados da API com sucesso!</Text>
-        /* Aqui depois faremos um loop para mostrar os dados na tela */
+        
       )}
     </View>
   );

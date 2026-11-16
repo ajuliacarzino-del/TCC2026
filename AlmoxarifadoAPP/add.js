@@ -8,12 +8,12 @@ import {
   Alert,
 } from 'react-native';
 
-const API_URL = 'http://10.154.21.16:5000';
+const API_URL = 'http://172.20.10.2:5000';
 
 const CATEGORIAS = ['Ferramenta', 'EPI', 'Outros'];
-const ESTOQUE_BAIXO = 5; // abaixo disso a quantidade fica destacada
+const ESTOQUE_BAIXO = 5; 
 
-// Dados fictícios iniciais
+
 const ESTOQUE_INICIAL = [
   { id: 1, nome: 'Chave de Fenda', categoria: 'Ferramenta', quantidade: 25 },
   { id: 2, nome: 'Alicate Universal', categoria: 'Ferramenta', quantidade: 18 },
@@ -29,7 +29,6 @@ const ESTOQUE_INICIAL = [
   { id: 12, nome: 'Extintor de Pó ABC', categoria: 'Outros', quantidade: 4 },
 ];
 
-// Converte o texto digitado em número inteiro positivo (ou null se inválido)
 const lerQuantidade = (texto) => {
   const n = parseInt(texto, 10);
   return isNaN(n) || n <= 0 ? null : n;
@@ -47,9 +46,7 @@ export default function TelaGerenciarItens() {
   const selecionado = itens.find((i) => i.id === selecionadoId) || null;
   const totalUnidades = itens.reduce((soma, i) => soma + i.quantidade, 0);
 
-  // ==========================================
-  // AÇÕES
-  // ==========================================
+  
 
   const movimentar = (tipo) => {
     if (!selecionado) {
@@ -129,9 +126,7 @@ export default function TelaGerenciarItens() {
     );
   };
 
-  // ==========================================
-  // RENDERIZAÇÃO
-  // ==========================================
+  
 
   return (
     <View>
@@ -192,7 +187,7 @@ export default function TelaGerenciarItens() {
         </Text>
       </View>
 
-      {/* ---------- MOVIMENTAR ITEM SELECIONADO ---------- */}
+    
       <View style={[styles.card, styles.espaco]}>
         <Text style={styles.titulo}>Entrada e Retirada</Text>
 
@@ -242,7 +237,7 @@ export default function TelaGerenciarItens() {
         </View>
       </View>
 
-      {/* ---------- CADASTRAR NOVO ITEM ---------- */}
+     
       <View style={[styles.card, styles.espaco]}>
         <Text style={styles.titulo}>Cadastrar Novo Item</Text>
 
@@ -296,9 +291,7 @@ export default function TelaGerenciarItens() {
   );
 }
 
-// ==========================================
-// ESTILOS (mesmo padrão visual do App.js)
-// ==========================================
+
 
 const styles = StyleSheet.create({
   card: {

@@ -14,10 +14,9 @@ import {
 } from 'react-native';
 import TelaGerenciarItens from './add';
 
-const API_URL = 'http://10.154.21.16:5000';
+const API_URL = 'http://172.20.10.2:5000';
 
-// Faz fetch com tempo limite (8 segundos). Sem isso, se o servidor não for
-// alcançado, o app fica "carregando" para sempre.
+
 const fetchComTimeout = async (url, opcoes = {}, tempoMs = 8000) => {
   const controlador = new AbortController();
   const timer = setTimeout(() => controlador.abort(), tempoMs);
@@ -46,27 +45,22 @@ const MENU = [
 ];
 
 export default function App() {
-  // Estados Globais de Sessão e Navegação
+
   const [logado, setLogado] = useState(false);
   const [telaAtiva, setTelaAtiva] = useState('usuarios');
 
-  // Estados do Formulário de Login
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
 
-  // Estados da Tela de Adicionar Usuário
+  // Adicionar Usuário
   const [novoUsuario, setNovoUsuario] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Estados da Tela de Almoxarifado (Estoque)
+  //Almoxarifado (Estoque)
   const [listaEstoque, setListaEstoque] = useState([]);
   const [atualizandoEstoque, setAtualizandoEstoque] = useState(false);
-
-  // ==========================================
-  // REQUISIÇÕES DA API
-  // ==========================================
 
   const lidarComLogin = async () => {
     if (!usuario || !senha) {
@@ -157,9 +151,7 @@ export default function App() {
     setSenha('');
   };
 
-  // ==========================================
-  // RENDERIZAÇÃO DE TELAS
-  // ==========================================
+ 
 
   if (!logado) {
     return (
@@ -228,7 +220,6 @@ export default function App() {
         </ScrollView>
       </View>
 
-      {/* Conteúdo Dinâmico */}
       <ScrollView contentContainerStyle={styles.conteudoTela} keyboardShouldPersistTaps="handled">
         
         {/* Tela: Adicionar Usuário */}
@@ -291,7 +282,7 @@ export default function App() {
           </View>
         )}
 
-        {/* Tela: Gerenciar Itens (Adicionar e Retirar) - página separada */}
+        {/* Tela: Gerenciar Itens */}
         {telaAtiva === 'itens' && <TelaGerenciarItens />}
 
       </ScrollView>
@@ -299,15 +290,12 @@ export default function App() {
   );
 }
 
-// ==========================================
-// ESTILOS DO APLICATIVO
-// ==========================================
 
 const styles = StyleSheet.create({
   // Tela de Login
   fundo: {
     flex: 1,
-    backgroundColor: '#003366', // Azul institucional corporativo
+    backgroundColor: '#003366', 
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -380,7 +368,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  // Dashboard e Navegação
+  // Navegação
   containerDashboard: {
     flex: 1,
     backgroundColor: '#f4f6f9',
@@ -435,7 +423,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // Conteúdo e Cards Internos
+  
   conteudoTela: {
     padding: 16,
   },
@@ -485,7 +473,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 
-  // Listagem de Estoque
+  // Estoque
   estoqueHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
